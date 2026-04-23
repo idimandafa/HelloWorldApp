@@ -11,6 +11,14 @@ A simple Android application built with Jetpack Compose and Kotlin.
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 34 (Android 14)
 
+## Created With Android CLI
+
+This project was created using Android CLI with the following command:
+
+```bash
+android create --name="HelloWorldApp" --minSdk=24 --verbose
+```
+
 ## Project Structure
 
 ```
