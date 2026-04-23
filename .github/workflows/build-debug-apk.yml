@@ -1,0 +1,64 @@
+name: Build Debug APK V3
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Record Start Time
+        run: echo "BUILD_START_TIME=$(date +%s)" >> $GITHUB_ENV
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+        id: build
+
+      - name: Generate Build Log
+        if: always()
+        run: |
+          mkdir -p docs
+          BUILD_STATUS=${{ job.status }}
+          BUILD_TIME=$(TZ='Asia/Jakarta' date +'%Y-%m-%d %I:%M:%S %p WIB')
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          BUILD_END_TIME=$(date +%s)
+          BUILD_DURATION=$((BUILD_END_TIME - BUILD_START_TIME))
+          BUILD_DURATION_MIN=$((BUILD_DURATION / 60))
+          BUILD_DURATION_SEC=$((BUILD_DURATION % 60))
+
+          cat >> docs/BUILD_LOG.md << EOF
+
+          ## Build #${{ github.run_number }}
+          - **Date/Time:** $BUILD_TIME
+          - **Status:** $BUILD_STATUS
+          - **Total Duration:** ${BUILD_DURATION_MIN}m ${BUILD_DURATION_SEC}s
+          - **Commit:** $COMMIT_SHA
+          - **Workflow Run:** [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - **Triggered By:** ${{ github.actor }}
+
+          EOF
+
+      - name: Commit Build Log
+        if: always()
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/BUILD_LOG.md
+          git commit -m "chore: update build log #${{ github.run_number }} - Status: ${{ job.status }}" || true
+          git push origin main || true
